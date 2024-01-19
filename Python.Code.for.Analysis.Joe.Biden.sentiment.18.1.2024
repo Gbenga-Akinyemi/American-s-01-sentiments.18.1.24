@@ -1,0 +1,139 @@
+## Word cloud
+
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+# Join the text paragraphs into a single string
+text_content = ' '.join(text)
+
+# Generate a word cloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text_content)
+
+# Display the word cloud using matplotlib
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+
+
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from textblob import TextBlob
+import matplotlib.pyplot as plt
+
+# Download NLTK resources (if not already downloaded)
+nltk.download('vader_lexicon')
+
+# Function to perform sentiment analysis using NLTK's VADER
+def analyze_sentiment_nltk(text):
+    sid = SentimentIntensityAnalyzer()
+    sentiment_scores = sid.polarity_scores(text)
+    return sentiment_scores['compound']
+
+# Function to perform sentiment analysis using TextBlob
+def analyze_sentiment_textblob(text):
+    blob = TextBlob(text)
+    return blob.sentiment.polarity, blob.sentiment.subjectivity
+
+# Apply sentiment analysis to each paragraph
+sentiment_scores_nltk = [analyze_sentiment_nltk(paragraph) for paragraph in text]
+sentiment_scores_textblob = [analyze_sentiment_textblob(paragraph) for paragraph in text]
+
+# Extract sentiment polarities and subjectivities
+polarities_textblob, subjectivities_textblob = zip(*sentiment_scores_textblob)
+
+# Map sentiment polarity scores to categories (positive, negative, neutral)
+sentiment_categories = ['Positive' if score > 0 else 'Negative' if score < 0 else 'Neutral' for score in polarities_textblob]
+
+# Visualization: Pie chart
+labels = ['Positive', 'Negative', 'Neutral']
+sizes = [sentiment_categories.count('Positive'), sentiment_categories.count('Negative'), sentiment_categories.count('Neutral')]
+colors = ['green', 'red', 'grey']
+
+plt.figure(figsize=(8, 8))
+plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+plt.title('Sentiment Distribution')
+plt.show()
+
+# Visualization: Bar chart
+plt.figure(figsize=(8, 5))
+plt.bar(labels, sizes, color=colors)
+plt.xlabel('Sentiment')
+plt.ylabel('Frequency')
+plt.title('Sentiment Distribution (Bar Chart)')
+plt.show()
+
+
+
+
+
+import os
+import nltk
+import pandas as pd
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from textblob import TextBlob
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize
+
+# Download NLTK resources (if not already downloaded)
+nltk.download('vader_lexicon')
+nltk.download('stopwords')
+
+# Define stop words
+stop_words = set(stopwords.words('english'))
+
+# Path to the Word file
+word_file_path = "/Users/gbengaakinyemi/Documents/2024-Analytics-Projects/US_President_Sentiments/2024.01.18.Press_releases_and_statements.Biden/JANUARY 18.Press.releases&Statements.docx"
+
+# Check if the file exists
+if os.path.exists(word_file_path):
+    # Read the Word document
+    doc = Document(word_file_path)
+
+    # Extract text from paragraphs
+    text = ' '.join([paragraph.text for paragraph in doc.paragraphs])
+
+    # Extract sentences and remove stop words
+    sentences = [sentence for sentence in sent_tokenize(text) if sentence.lower() not in stop_words]
+
+    # Perform sentiment analysis on each sentence
+    sentiment_scores_nltk = [analyze_sentiment_nltk(sentence) for sentence in sentences]
+    sentiment_scores_textblob = [analyze_sentiment_textblob(sentence) for sentence in sentences]
+
+    # Classify sentences into categories
+    sentiment_categories = []
+    subjectivity_scores = []
+    for score_nltk, (polarity_textblob, subjectivity_textblob) in zip(sentiment_scores_nltk, sentiment_scores_textblob):
+        if polarity_textblob > 0:
+            sentiment_categories.append('Positive')
+        elif polarity_textblob < 0:
+            sentiment_categories.append('Negative')
+        elif subjectivity_textblob > 0.5:
+            sentiment_categories.append('Subjective')
+        else:
+            sentiment_categories.append('Objective')
+
+        subjectivity_scores.append(subjectivity_textblob)
+
+    # Create a DataFrame
+    df = pd.DataFrame({
+        'Subjectivity Score': subjectivity_scores,
+        'NLTK Polarity Score': [round(score, 6) for score in sentiment_scores_nltk],
+        'TextBlob Polarity Score': [round(polarity, 6) for polarity, _ in sentiment_scores_textblob]
+    })
+
+    # Save DataFrame to a CSV file
+    csv_file_path = '/Users/gbengaakinyemi/Documents/2024-Analytics-Projects/US_President_Sentiments/2024.01.18.Press_releases_and_statements.Biden/2024.01.18.JB.staments/sentiment_analysis_results.csv'
+    df.to_csv(csv_file_path, index=False)
+
+    # Print sentiment analysis results
+    print(df)
+
+    print(f"\nDataFrame saved to: {csv_file_path}")
+
+else:
+    print(f"The file {word_file_path} does not exist.")
+
